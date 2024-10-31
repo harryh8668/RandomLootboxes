@@ -1,0 +1,9 @@
+name: RandomLootboxes
+main: me.harry.randomlootboxes.RandomLootboxes
+version: 1.0
+authors:
+  - harry8668
+api-version: 1.18
+commands:
+  alootboxes:
+    description: admin lootbox commands
