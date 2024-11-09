@@ -1,16 +1,13 @@
 # -----------------------------------------------------------------------------------------------------------
+#
 # RANDOMLOOTBOXES - Made by Harry8668
 #
-# COMMANDS:
+# ADMIN COMMANDS:
 # /alootboxes create [lootbox name] - Creates lootbox :)
 # /alootboxes remove [lootbox name] - removes lootbox :)
-# /alootboxes list - lists all lootboxes :)
-# /alootboxes addreward [lootbox name] [itemID] [chance] - adds reward to lootbox with odds
-# /alootboxes setrewardamount [lootbox name] [reward Amount] - sets amount of rewards
-# /alootboxes removerewards [lootbox name] [itemID] - removes item from lootbox
-# /alootboxes editodds [lootbox name] [itemID] [new Odds] - sets new odds to item
-# /alootboxes setitem [lootbox name] [itemID] - sets item held to the new item
-# /alootboxes view [lootbox name] - shows all rewards with chances
+# /alootboxes addreward [lootbox name] [itemID] - adds reward to lootbox with odds :)
+# /alootboxes removereward [lootbox name] [itemID] - removes item from lootbox :)
+# /alootboxes give [player] [lootbox name] [amount]
 #
 # HELP:
 # use the config below to edit lootboxes.
@@ -21,9 +18,6 @@
 
 messages:
   prefix: "&f[&b&lELYTRA&f] "
-  openLootbox: "&a&l%player% has just opened a %lootbox% lootbox!"
-  givenLootbox: "&a%sender% has given you a %lootbox% lootbox"
-  adminGivenLootbox: "&aYou have given %player% a %lootbox% lootbox"
   addedLootbox: "You have added a %lootbox% lootbox!"
   removedLootbox: "You have removed %lootbox%"
 
