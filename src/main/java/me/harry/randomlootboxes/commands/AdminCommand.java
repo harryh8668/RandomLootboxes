@@ -2,7 +2,9 @@ package me.harry.randomlootboxes.commands;
 
 import me.harry.randomlootboxes.RandomLootboxes;
 import me.harry.randomlootboxes.utils.ChatUtils;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -15,14 +17,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.io.File;
-import java.lang.reflect.Type;
-import java.security.Key;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import static java.lang.Integer.TYPE;
 
 public class AdminCommand implements CommandExecutor {
 
@@ -36,121 +35,187 @@ public class AdminCommand implements CommandExecutor {
         return plugin.getConfig().getString("messages.prefix");
     }
 
+    @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (sender instanceof Player player) {
-            if (player.hasPermission("randomlootboxes.admin")) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("This command can only be executed by players.");
+            return true;
+        }
 
-                if (args[0].equals("create")) {
-                    String lootboxName = args[1];
-                    System.out.println("Lootbox Name: " + lootboxName);
+        if (!player.hasPermission("randomlootboxes.admin")) {
+            player.sendMessage(ChatUtils.colorCodes(prefix() + "&cYou don't have permission to use this command."));
+            return true;
+        }
 
-                    ItemStack heldItem = player.getInventory().getItemInMainHand();
-                    System.out.println("Held Item: " + heldItem);
+        if (args.length < 1) {
+            player.sendMessage(ChatUtils.colorCodes(prefix() + "&cInvalid command. Use /alootboxes help for assistance."));
+            return true;
+        }
 
-                    if (heldItem == null || heldItem.getType() == Material.AIR) {
-                        player.sendMessage(ChatUtils.colorCodes(prefix() + "You must hold an item to save as a lootbox."));
-                        return true;
-                    }
+        switch (args[0].toLowerCase()) {
+            case "create" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cPlease specify a name for the lootbox."));
+                    return true;
+                }
 
-                    System.out.println("About to save");
-                    FileConfiguration config = this.plugin.getConfig();
-                    config.set("lootbox." + lootboxName + ".item", heldItem);
+                String lootboxName = args[1];
+                ConfigurationSection boxList = plugin.getConfig().getConfigurationSection("lootbox");
+                if (boxList != null && boxList.getKeys(false).contains(lootboxName)) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cA lootbox with the name '" + lootboxName + "' already exists."));
+                    return true;
+                }
+
+                ItemStack heldItem = player.getInventory().getItemInMainHand();
+                if (heldItem == null || heldItem.getType() == Material.AIR) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cYou must hold an item to save as a lootbox."));
+                    return true;
+                }
+
+                FileConfiguration config = plugin.getConfig();
+                config.set("lootbox." + lootboxName + ".item", heldItem);
+                plugin.saveConfig();
+
+                String nameReplace = Objects.requireNonNull(config.getString("messages.addedLootbox")).replace("%lootbox%", lootboxName);
+                player.sendMessage(ChatUtils.colorCodes(prefix() + nameReplace));
+            }
+            case "replace" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cPlease specify a name for the lootbox."));
+                    return true;
+                }
+
+                String lootboxName = args[1];
+                ItemStack heldItem = player.getInventory().getItemInMainHand();
+                if (heldItem == null || heldItem.getType() == Material.AIR) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cYou must hold an item to save as a lootbox."));
+                    return true;
+                }
+
+                FileConfiguration config = plugin.getConfig();
+                config.set("lootbox." + lootboxName + ".item", heldItem);
+                player.sendMessage(ChatUtils.colorCodes(prefix() + " &a Replaced lootbox!"));
+                plugin.saveConfig();
+
+                String nameReplace = Objects.requireNonNull(config.getString("messages.replacedLootbox")).replace("%lootbox%", lootboxName);
+                player.sendMessage(ChatUtils.colorCodes(prefix() + nameReplace));
+            }
+            case "remove" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cPlease specify a lootbox name to remove."));
+                    return true;
+                }
+
+                String lootboxName = args[1];
+                FileConfiguration config = plugin.getConfig();
+                if (config.contains("lootbox." + lootboxName)) {
+                    config.set("lootbox." + lootboxName, null);
                     plugin.saveConfig();
 
-                    System.out.println("Saved");
-                    String nameReplace = config.getString("messages.addedLootbox").replace("%lootbox%", lootboxName);
+                    String nameReplace = Objects.requireNonNull(config.getString("messages.removedLootbox")).replace("%lootbox%", lootboxName);
                     player.sendMessage(ChatUtils.colorCodes(prefix() + nameReplace));
-
-                } else if (args[0].equals("remove")) {
-                    String lootboxName = args[1];
-                    FileConfiguration config = plugin.getConfig();
-                    ConfigurationSection configKeys = config.getConfigurationSection("lootbox");
-
-                    if (configKeys != null && configKeys.contains(lootboxName)) {
-                        String lootboxPath = "lootbox." + lootboxName;
-                        config.set(lootboxPath, null);
-                        plugin.saveConfig();
-
-                        String nameReplace = config.getString("messages.removedLootbox").replace("%lootbox%", lootboxName);
-                        player.sendMessage(ChatUtils.colorCodes(prefix() + nameReplace));
-                    } else {
-                        player.sendMessage(ChatUtils.colorCodes(prefix() + "&cLootbox not found: " + lootboxName));
-                    }
-
-                } else if (args[0].equals("list")) {
-                    ConfigurationSection boxList = plugin.getConfig().getConfigurationSection("lootbox");
-                    player.sendMessage(ChatUtils.colorCodes("&b&lLOOTBOXES LIST"));
-                    for (String key : boxList.getKeys(false)) {
-                        player.sendMessage(ChatUtils.colorCodes("&f- " + key + " Lootbox"));
-                    }
-
-                } else if (args[0].equals("addreward")) {
-                    String lootboxName = args[1];
-                    FileConfiguration config = plugin.getConfig();
-                    ConfigurationSection configKeys = config.getConfigurationSection("lootbox");
-
-                    if (configKeys != null && configKeys.contains(lootboxName)) {
-                        ItemStack heldItem = player.getInventory().getItemInMainHand();
-                        System.out.println("Held Item: " + heldItem);
-
-                        if (heldItem == null || heldItem.getType() == Material.AIR) {
-                            player.sendMessage(ChatUtils.colorCodes(prefix() + "You must hold an item to save as a lootbox reward."));
-                            return true;
-                        }
-
-                        ItemMeta meta = heldItem.getItemMeta();
-                        String display = meta.getDisplayName();
-
-                        int id = Integer.parseInt(args[2]);
-                        config.set("lootbox." + lootboxName + ".reward." + id + ".name", display);
-                        config.set("lootbox." + lootboxName + ".reward." + id + ".item", heldItem);
-                        plugin.saveConfig();
-                    }
-
-                } else if (args[0].equals("removereward")) {
-                    String lootboxName = args[1];
-                    FileConfiguration config = plugin.getConfig();
-                    ConfigurationSection configKeys = config.getConfigurationSection("lootbox");
-
-                    if (configKeys != null && configKeys.contains(lootboxName)) {
-
-                        if (args.length < 3) {
-                            player.sendMessage(ChatUtils.colorCodes(prefix() + "You must specify a reward ID to remove."));
-                            return true;
-                        }
-
-                        int id = Integer.parseInt(args[2]);
-                        String rewardPath = "lootbox." + lootboxName + ".reward." + id;
-
-                        if (config.contains(rewardPath)) {
-                            config.set(rewardPath, null);
-                            player.sendMessage(ChatUtils.colorCodes(prefix() + "Removed reward with ID " + id + " from lootbox " + lootboxName + "."));
-                        } else {
-                            player.sendMessage(ChatUtils.colorCodes(prefix() + "No reward found with ID " + id + " for lootbox " + lootboxName + "."));
-                        }
-
-                        plugin.saveConfig();
-                    } else {
-                        player.sendMessage(ChatUtils.colorCodes(prefix() + "Lootbox " + lootboxName + " does not exist."));
-                    }
-
-                } else if (args[0].equals("give")) {
-                    FileConfiguration config = plugin.getConfig();
-                    Player target = Bukkit.getPlayer(args[1]);
-                    String lootboxName = args[2];
-                    if (target != null) {
-                        int amount = Integer.parseInt(args[3]);
-                        ItemStack lootbox = new ItemStack(config.getItemStack("lootbox." + lootboxName + ".item"));
-                        lootbox.setAmount(amount);
-                        ItemMeta meta = lootbox.getItemMeta();
-                        PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                        pdc.set(new NamespacedKey(plugin, "lootbox"), PersistentDataType.STRING, lootboxName);
-                        lootbox.setItemMeta(meta);
-                        player.getInventory().addItem(lootbox);
-
-                    }
                 } else {
-                    player.sendMessage(ChatColor.RED + "Unable to find the player.");
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cLootbox not found: " + lootboxName));
+                }
+            }
+            case "list" -> {
+                ConfigurationSection boxList = plugin.getConfig().getConfigurationSection("lootbox");
+                if (boxList == null || boxList.getKeys(false).isEmpty()) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cNo lootboxes available."));
+                    return true;
+                }
+                player.sendMessage(ChatUtils.colorCodes("&b&lLOOTBOXES LIST"));
+                for (String key : boxList.getKeys(false)) {
+                    player.sendMessage(ChatUtils.colorCodes("&f- " + key + " Lootbox"));
+                }
+            }
+            case "addreward" -> {
+                if (args.length < 3) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cUsage: /alootboxes addreward [lootbox name] [itemID]"));
+                    return true;
+                }
+
+                String lootboxName = args[1];
+                if (!plugin.getConfig().contains("lootbox." + lootboxName)) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cLootbox does not exist: " + lootboxName));
+                    return true;
+                }
+
+                ItemStack heldItem = player.getInventory().getItemInMainHand();
+                if (heldItem == null || heldItem.getType() == Material.AIR) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cYou must hold an item to save as a reward."));
+                    return true;
+                }
+
+                int id;
+                try {
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cInvalid reward ID. Please enter a number."));
+                    return true;
+                }
+
+                FileConfiguration config = plugin.getConfig();
+                ItemMeta meta = heldItem.getItemMeta();
+                String display = (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : heldItem.getType().name();
+                config.set("lootbox." + lootboxName + ".reward." + id + ".name", display);
+                config.set("lootbox." + lootboxName + ".reward." + id + ".item", heldItem);
+                plugin.saveConfig();
+                player.sendMessage(ChatUtils.colorCodes(prefix() + "&aReward added to lootbox " + lootboxName + "."));
+            }
+            case "removereward" -> {
+                if (args.length < 3) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cUsage: /alootboxes removereward [lootbox name] [itemID]"));
+                    return true;
+                }
+
+                String lootboxName = args[1];
+                if (!plugin.getConfig().contains("lootbox." + lootboxName)) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cLootbox does not exist: " + lootboxName));
+                    return true;
+                }
+
+                int id;
+                try {
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cInvalid reward ID. Please enter a number."));
+                    return true;
+                }
+
+                String rewardPath = "lootbox." + lootboxName + ".reward." + id;
+                if (plugin.getConfig().contains(rewardPath)) {
+                    plugin.getConfig().set(rewardPath, null);
+                    plugin.saveConfig();
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&aRemoved reward ID " + id + " from lootbox " + lootboxName + "."));
+                } else {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cNo reward found with ID " + id + " for lootbox " + lootboxName + "."));
+                }
+            }
+            case "give" -> {
+                if (args.length < 4) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cUsage: /alootboxes give [player] [lootbox name] [amount]"));
+                    return true;
+                }
+
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix() + "&cPlayer not found: " + args[1]));
+                    return true;
+                }
+
+                String lootboxName = args[2];
+                if (!plugin.getConfig().contains("lootbox." + lootboxName)) {
+                    player.sendMessage(ChatUtils.colorCodes(prefix()) + lootboxName + "&c is not a lootbox");
+                } else {
+                    int amount = Integer.parseInt(args[3]);
+                    ItemStack lootbox = new ItemStack(plugin.getConfig().getItemStack("lootbox." + lootboxName + ".item"));
+                    lootbox.setAmount(amount);
+                    ItemMeta meta = lootbox.getItemMeta();
+                    PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                    pdc.set(new NamespacedKey(plugin, "lootbox"), PersistentDataType.STRING, lootboxName);
+                    lootbox.setItemMeta(meta);
+                    player.getInventory().addItem(lootbox);
                 }
             }
         }

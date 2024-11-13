@@ -46,50 +46,57 @@ public class LootboxListeners implements Listener {
                 PersistentDataContainer pdc = meta.getPersistentDataContainer();
                 String lootboxName = pdc.get(new NamespacedKey(plugin, "lootbox"), PersistentDataType.STRING);
 
+                if (lootboxName != null) {
+                    ConfigurationSection boxList = plugin.getConfig().getConfigurationSection("lootbox");
 
-                List<ItemStack> items = new ArrayList<>();
+                    if (boxList != null && boxList.getKeys(false).contains(lootboxName)) {
+                        List<ItemStack> items = new ArrayList<>();
 
-                ConfigurationSection rewardsSection = config.getConfigurationSection("lootbox." + lootboxName + ".reward");
-                if (rewardsSection != null) {
-                    for (String key : rewardsSection.getKeys(false)) {
-                        rewardsSection = config.getConfigurationSection("lootbox." + lootboxName + ".reward." + key);
+                        ConfigurationSection rewardsSection = config.getConfigurationSection("lootbox." + lootboxName + ".reward");
                         if (rewardsSection != null) {
-                            ItemStack item = config.getItemStack("lootbox." + lootboxName + ".reward." + key + ".item");
-                            if (item != null) {
-                                items.add(item);
+                            for (String key : rewardsSection.getKeys(false)) {
+                                rewardsSection = config.getConfigurationSection("lootbox." + lootboxName + ".reward." + key);
+                                if (rewardsSection != null) {
+                                    ItemStack item = config.getItemStack("lootbox." + lootboxName + ".reward." + key + ".item");
+                                    if (item != null) {
+                                        items.add(item);
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    Collections.shuffle(items);
+                        Collections.shuffle(items);
 
-                    if (!items.isEmpty()) {
-                        int itemsToGive = Math.min(3, items.size());
+                        if (!items.isEmpty()) {
+                            int itemsToGive = Math.min(3, items.size());
 
-                        for (Player loopPlayer : Bukkit.getOnlinePlayers()) {
-                            loopPlayer.sendMessage(ChatUtils.colorCodes("&b&l" + player.getName() + " has just opened a " + lootboxName + " lootbox!"));
-                        }
-                        for (int i = 0; i < itemsToGive; i++) {
-                            ItemStack randomizedItem = items.get(i);
-                            ItemMeta randomMeta = randomizedItem.getItemMeta();
-                            String display = randomMeta.getDisplayName();
-                            if (display.isEmpty()) {
-                                display = randomizedItem.getType().toString().toLowerCase();
-                            }
-                            player.getInventory().addItem(randomizedItem);
                             for (Player loopPlayer : Bukkit.getOnlinePlayers()) {
-                                loopPlayer.sendMessage(ChatUtils.colorCodes("&f" + player.getName() + " received a " + display + "!"));
-                                loopPlayer.playSound(loopPlayer, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                                loopPlayer.sendMessage(ChatUtils.colorCodes("&b&l" + player.getName() + " has just opened a " + lootboxName + " lootbox!"));
                             }
+                            for (int i = 0; i < itemsToGive; i++) {
+                                ItemStack randomizedItem = items.get(i);
+                                ItemMeta randomMeta = randomizedItem.getItemMeta();
+                                String display = randomMeta.getDisplayName();
+                                if (display.isEmpty()) {
+                                    display = randomizedItem.getType().toString().toLowerCase();
+                                }
+                                player.getInventory().addItem(randomizedItem);
+                                for (Player loopPlayer : Bukkit.getOnlinePlayers()) {
+                                    loopPlayer.sendMessage(ChatUtils.colorCodes("&f" + player.getName() + " received a " + display + "!"));
+                                    loopPlayer.playSound(loopPlayer, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                                }
+                            }
+                            lootbox.setAmount(lootbox.getAmount() - 1);
+                        } else {
+                            player.sendMessage("No items found in the lootbox rewards.");
                         }
                     } else {
-                        player.sendMessage("No items found in the lootbox rewards.");
+                        player.sendMessage("No rewards found for this lootbox.");
                     }
                 } else {
-                    player.sendMessage("No rewards found for this lootbox.");
+                    player.sendMessage("Not a lootbox idiot.");
                 }
             }
-            lootbox.setAmount(lootbox.getAmount() - 1 );
         }
     }
 }

@@ -4,6 +4,7 @@
 #
 # ADMIN COMMANDS:
 # /alootboxes create [lootbox name] - Creates lootbox :)
+# /alootboxes setlootbox [lootbox name] - Replaces item
 # /alootboxes remove [lootbox name] - removes lootbox :)
 # /alootboxes addreward [lootbox name] [itemID] - adds reward to lootbox with odds :)
 # /alootboxes removereward [lootbox name] [itemID] - removes item from lootbox :)
@@ -20,5 +21,6 @@ messages:
   prefix: "&f[&b&lELYTRA&f] "
   addedLootbox: "You have added a %lootbox% lootbox!"
   removedLootbox: "You have removed %lootbox%"
+  replacedLootbox: "You have added %lootbox% lootbox!"
 
 lootbox:
